@@ -1,0 +1,311 @@
+import matplotlib.pyplot as plt
+print(plt.get_backend())
+import random
+import math
+import tkinter as tk
+from tkinter import messagebox
+import time
+
+resultado = None
+x=None
+y=None
+
+class Casilla:
+  def __init__(self):
+    self.Visible = False
+    self.Tienemina = False
+    self.Minamarcada = False
+    self.NumAdy = 0
+class Buscaminas:
+  def __init__(self, tam, numMinas):
+    self.Numm = numMinas
+    self.Tamaño = tam
+    self.tablero = []
+    self.pendientes = tam*tam
+    self.Estado = ""
+    self.XError = None
+    self.YError = None
+    for fila in range(tam):
+        f = []
+        for j in range(tam):
+            f.append(Casilla())
+        self.tablero.append(f)
+    num = 0
+    while num < numMinas:
+        rndx = random.randint(0, tam-1)
+        rndy = random.randint(0, tam-1)
+        if not self.tablero[rndx][rndy].Tienemina:
+            self.tablero[rndx][rndy].Tienemina = True
+            filaIni = max(rndx-1, 0)
+            filaFin = min(rndx+1, tam-1)
+            colIni = max(rndy-1, 0)
+            colFin = min(rndy+1, tam-1)
+            for i in range (filaIni, filaFin+1, 1 ):
+                for j in range(colIni, colFin+1, 1):
+                    if i != rndx or j != rndy:
+                        self.tablero[i][j].NumAdy += 1
+            num += 1
+  def pintar(self):
+
+      if self.Estado == "G":
+          plt.suptitle("has Ganado? SIIIIIIIII")
+      elif self.Estado == "P":
+          plt.suptitle("has perdido :(((")
+      else:
+          plt.suptitle("Pendientes: " + str(self.pendientes))
+      for n in range (self.Tamaño+1):
+          plt.plot( [0,self.Tamaño], [ n, n], color = "black", linewidth = 0.5)
+          plt.plot( [n, n], [0, self.Tamaño], color = "black", linewidth=0.5)
+      for i in range (self.Tamaño):
+          for j in range (self.Tamaño):
+              px = j + 0.5
+              py = self.Tamaño - (i +0.5)
+              if self.tablero[i][j].Visible:
+                  if self.XError == i and self.YError == j:
+                      plt.plot([px], [py], linestyle= "None", marker=".", markersize=8, color="red")
+                  elif self.tablero[i][j].Minamarcada:
+                      plt.plot([px], [py], linestyle= "None", marker=".",markersize=8, color="blue")
+                  elif self.tablero[i][j].Tienemina:
+                      plt.plot([px], [py], linestyle="None", marker=".", markersize=8, color="orange")
+
+                  else:
+                      if self.tablero[i][j].NumAdy != 0:
+                          plt.text(px,py,str(self.tablero[i][j].NumAdy),horizontalalignment='center',verticalalignment='center',color='gray',fontsize=12)
+              else:
+                  plt.plot([px],[py],linestyle='None',marker='.', markersize=4, color = 'black')
+
+  def limpiar (self,x,y):
+      Climpiar=[[x,y]]
+      while len(Climpiar) != 0:
+          [x,y] = Climpiar.pop(0)
+          for i in range((max((x-1),0 )),min((x+1), self.Tamaño-1)+1, 1):
+              for j in range((max((y - 1), 0)), min((y + 1), self.Tamaño - 1) + 1, 1):
+                if not self.tablero[i][j].Visible and not self.tablero[i][j].Tienemina:
+                    self.pendientes -= 1
+                    self.tablero[i][j].Visible = True
+                    if self.tablero[i][j].NumAdy == 0: Climpiar.append([i, j])
+  def on_click(self, event):
+
+          y= math.floor(event.xdata)
+          x= self.Tamaño - math.floor(event.ydata) -1
+          if event.button == 1:
+              if self.tablero[x][y].Tienemina:
+                  self.juego(x, y)
+
+                  self.Estado = "P"
+                  self.XError = x
+                  self.YError = y
+                  for i in range(self.Tamaño):
+                      for j in range(self.Tamaño):
+                          self.tablero[i][j].Visible = True
+
+                  plt.clf()
+                  self.pintar()
+                  plt.show()
+
+
+
+              elif not self.tablero[x][y].Visible:
+                  self.pendientes -= 1
+                  self.tablero[x][y].Visible = True
+                  self.limpiar(x, y)
+                  plt.clf()
+                  self.pintar()
+                  plt.show()
+          elif event.button== 3:
+              VAntes = self.tablero[x][y].Visible
+              self.tablero[x][y].Minamarcada = not self.tablero[x][y].Minamarcada
+              if self.tablero[x][y].Minamarcada:
+                  self.tablero[x][y].Visible=True
+                  plt.clf()
+                  self.pintar()
+                  plt.show()
+              if VAntes and not self.tablero[x][y].Visible:
+                  self.pendientes +=1
+                  plt.clf()
+                  self.pintar()
+                  plt.show()
+              if not VAntes and not self.tablero[x][y].Visible:
+                  self.pendientes -= 1
+                  plt.clf()
+                  self.pintar()
+                  plt.show()
+          if self.pendientes== self.Numm:
+              self.Estado='G'
+              plt.clf()
+              self.pintar()
+              plt.show()
+          plt.clf()
+          self.pintar()
+          plt.show()
+
+  def juego(self, x, y):
+      def dec(mat, n, name):
+          global resultado
+          if mat[1][n] == name:
+              resultado = "correcta "
+              messagebox.showinfo(" la respuesta es", str("PUEDES SEGUIR JUGANDO, la respuesta es ") + resultado)
+
+          elif mat[1][n] != name:
+              resultado = "incorrecta"
+              self.Estado = "P"
+              self.XError = x
+              self.YError = y
+              for i in range(self.Tamaño):
+                  for j in range(self.Tamaño):
+                      self.tablero[i][j].Visible = True
+              messagebox.showinfo(" la respuesta es", str(" perdiste :(, la respuesta es ") + resultado)
+          ventana.update()
+          ventana.after(1000, plt.clf)
+          ventana.after(1000, self.pintar)
+          ventana.after(1000, plt.show)
+          ventana.after(1000, plt.close('all'))
+          ventana.after(1000, close_window)
+
+
+      def close_window():
+          ventana.destroy()
+
+      preg = ["Para crear una lista vacía en Python, se escribe: my_list = []. Verdadero o Falso?",
+              "En Python, las listas son inmutables, lo que significa que no se pueden modificar una vez creadas. Verdadero o Falso?",
+              "Las listas en Python pueden contener diferentes tipos de datos, como números, cadenas de texto, booleanos y otras listas. Verdadero o Falso?",
+              "Es posible ordenar una lista en Python utilizando el método sort(). Verdadero o Falso?",
+              "Las listas en Python siempre comienzan en el índice 0. Verdadero o Falso?",
+              "Las listas enlazadas son un tipo de estructura de datos lineal. (Verdadero/Falso)",
+              "Las listas enlazadas se pueden implementar tanto de forma iterativa como recursiva. (Verdadero/Falso)",
+              "Las listas enlazadas tienen un tamaño fijo que se determina al crearlas. (Verdadero/Falso)",
+              "Una multilista es una estructura de datos que puede contener varias sublistas dentro de sí misma? ",
+              "Es posible tener sublistas vacías dentro de una multilista? ",
+              "Una multilista puede contener elementos de diferentes tipos de datos?",
+              "En una multilista, las sublistas pueden ser de diferentes tamaños. ",
+              "Una multilista puede tener más de una dimensión.",
+              "Las multilistas solo pueden ser unidireccionales.",
+              "El método write() de un objeto archivo sobrescribe el contenido anterior del archivo. ",
+              "En Python, el método readlines() se utiliza para leer todo el contenido de un archivo de texto en una lista. ",
+              "En Python, el método close() de un objeto archivo no cierra el archivo y libera todos los recursos asociados a él.",
+              "Los elementos en una lista en Python siempre están en el mismo orden en el que fueron agregados. ",
+              "No se puede concatenar dos listas en Python.",
+              "Las listas en Python no pueden contener otras listas como elementos"
+              ]
+      resp = ["Verdadero", "Falso", "Verdadero", "Verdadero", "Verdadero", "Verdadero", "Verdadero", "Falso",
+              "Verdadero", "Verdadero", "Verdadero", "Verdadero", "Verdadero",
+              "Falso", "Verdadero", "Verdadero", "Falso", "Falso", "Falso", "Falso"]
+      quest = []
+
+      quest.append(preg)
+      quest.append(resp)
+
+      ventana = tk.Tk()
+      ventana.title("conversor")
+      ventana.geometry("900x400")
+
+      ############
+      rotulo = tk.Label(ventana,
+                        text="SEGUNDA OPORTUNIDADDDDDD!!!", font='consolas 20 bold', padx=30, pady=30, anchor="n")
+      rotulo.pack()
+
+      ############
+      p = random.randint(0, len(preg))
+      pregunta = tk.Label(ventana, text=quest[0][p], font=("arial", 12), padx=50, pady=30)
+      pregunta.pack()
+
+      vd = tk.Button(ventana, text="Verdadero", font="arial", bg="lightgrey", fg="black",
+                     padx=20, pady=20, relief="groove", bd=10, command=lambda: dec(quest, p, "Verdadero"))
+      vd.pack()
+      ff = tk.Button(ventana, text="    Falso     ", font="arial", bg="lightgrey", fg="black",
+                     padx=20, pady=20, relief="groove", bd=10, command=lambda: dec(quest, p, "Falso"))
+      ff.pack()
+
+      ventana.mainloop()
+
+
+
+def Inicio():
+    ##Ventana principal
+    ventana1 = tk.Tk()
+    ventana1.title("Inicio")
+    ventana1.geometry("600x450")
+
+    ##Labels
+    rotulo = tk.Label(ventana1,
+                      text="Inicio del juego", font='consolas 20 bold', padx=30, pady=30, anchor="n")
+    rotulo.pack()
+    rotulo1 = tk.Label(ventana1,
+                      text="ingrese el tamaño"
+                           " ", font='consolas 12 bold', padx=11, pady=11, anchor="n")
+    rotulo1.pack()
+    rotulo2 = tk.Label(ventana1,
+                       text=""
+                            " deseado del buscaminas ", font='consolas 12 bold', padx=11, pady=11, anchor="n")
+    rotulo2.pack()
+    rotulo3 = tk.Label(ventana1,
+                       text="y la cant. de minas, separados por coma"
+                             , font='consolas 12 bold', padx=11, pady=11, anchor="n")
+    rotulo3.pack()
+
+    #caja de texto
+    Entrada=tk.Entry(ventana1,
+                         bg="yellow",
+                         fg="black",
+                         font="consolas 20 bold",
+                         relief=tk.SUNKEN,
+                         bd=3,
+                         width=15)
+    Entrada.pack( padx=15, pady=15)
+
+    # Funciones
+    def close_window():
+        ventana1.destroy()
+
+    def envio():
+        datos = Entrada.get()
+        inf = datos.split(",")
+        if len(inf) == 2 and (int(inf[0])>int(inf[1])) and (int(inf[0])>5) and (int(inf[1])<100) :
+            x = int(inf[0])
+            y = int(inf[1])
+            ventana1.after(1000, close_window)
+            # programa principal
+            Busca = Buscaminas(x, y)
+            plt.connect('button_press_event', Busca.on_click)
+            plt.ion()
+            Busca.pintar()
+            plt.draw()
+            plt.pause(100)
+
+        elif len(inf)!=2:
+            messagebox.showinfo("ADVERTENCIA", str("Debes escribir dos variables separadas por comas"))
+        elif int(inf[0])<=int(inf[1]):
+            messagebox.showinfo("ADVERTENCIA", str("Mejor dejemos mas casillas que minas"))
+        elif (int(inf[0])<5):
+            messagebox.showinfo("ADVERTENCIA",str("Mejor hagamos un tablero de mas de 5x5"))
+        elif int(inf[1])<100:
+            messagebox.showinfo("ADVERTENCIA",str("No te pases de minas"))
+
+
+
+
+
+
+
+    #Boton
+    vd = tk.Button(ventana1, text="Juego", font="arial", bg="lightgrey", fg="black",
+                   padx=20, pady=20, relief="groove", bd=10, command=envio)
+    vd.pack()
+
+
+
+
+    ventana1.mainloop()
+
+
+
+Inicio()
+##
+    #programa principal
+    #Busca = Buscaminas(24,60)
+    #plt.connect('button_press_event', Busca.on_click)
+    #plt.ion()
+    #Busca.pintar()
+    #plt.draw()
+    #plt.pause(100)
+    #plt.show()
